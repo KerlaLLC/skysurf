@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using Shared.Authentication;
+using Shared.Views;
 using Terminal.Gui;
 
 namespace Shared.Connections.Views;
 
-public sealed class ConnectionManagerScreen : FrameView
+public sealed class ConnectionManagerScreen : View
 {
     private readonly IConnectionRepository _connectionRepository;
     private readonly SkyAuthenticationService _authService;
@@ -14,7 +15,7 @@ public sealed class ConnectionManagerScreen : FrameView
 
     private readonly ListView _listView;
     private readonly TextField _searchField;
-    private readonly FrameView _rightPanel;
+    private readonly GroupBox _rightPanel;
     private readonly TextField _nameField;
     private readonly TextField _subscriptionKeyField;
     private readonly TextField _clientIdField;
@@ -23,6 +24,7 @@ public sealed class ConnectionManagerScreen : FrameView
     private readonly TextField _authCodeField;
     private readonly Label _authCodeLabel;
     private readonly Label _formStatusLabel;
+    private readonly CheckBox? _defaultCheckBox;
     private readonly Button _saveButton;
     private readonly Button _cancelButton;
 
@@ -39,7 +41,8 @@ public sealed class ConnectionManagerScreen : FrameView
         Action<ConnectionRecord>? onSelect = null,
         Action<ConnectionRecord>? onGetToken = null,
         Action<ConnectionRecord>? onRotateToken = null,
-        bool showQuit = false)
+        bool showQuit = false,
+        bool showDefaultOption = false)
     {
         _connectionRepository = connectionRepository;
         _authService = authService;
@@ -47,10 +50,8 @@ public sealed class ConnectionManagerScreen : FrameView
         _onGetToken = onGetToken;
         _onRotateToken = onRotateToken;
 
-        Title = "Connections";
-
         // ── Left panel ────────────────────────────────────────────────────
-        var leftPanel = new FrameView("Connections")
+        var leftPanel = new GroupBox("_Connections")
         {
             X = 0,
             Y = 0,
@@ -96,7 +97,7 @@ public sealed class ConnectionManagerScreen : FrameView
         leftPanel.Add(_searchField, _listView);
 
         // ── Right panel ───────────────────────────────────────────────────
-        _rightPanel = new FrameView("Connection")
+        _rightPanel = new GroupBox("Connection _Details")
         {
             X = Pos.Right(leftPanel),
             Y = 0,
@@ -153,6 +154,12 @@ public sealed class ConnectionManagerScreen : FrameView
 
         _formStatusLabel = new Label(string.Empty) { X = 1, Y = 17, Width = Dim.Fill(2) };
         _rightPanel.Add(_formStatusLabel);
+
+        if (showDefaultOption)
+        {
+            _defaultCheckBox = new CheckBox("Use as default connection") { X = 1, Y = 18 };
+            _rightPanel.Add(_defaultCheckBox);
+        }
 
         _saveButton = new Button("Save") { X = 1, Y = 19 };
         _saveButton.Clicked += Save;
@@ -267,7 +274,6 @@ public sealed class ConnectionManagerScreen : FrameView
         _isAdding = false;
         PopulateForm(selected);
         UpdateAuthCodeLabel();
-        _rightPanel.Title = selected.Name;
     }
 
     private ConnectionRecord? GetSelectedFromList()
@@ -292,6 +298,8 @@ public sealed class ConnectionManagerScreen : FrameView
         _clientSecretField.Text = record.ClientSecret;
         _authCodeField.Text = string.Empty;
         _formStatusLabel.Text = GetTokenStatus(record);
+        if (_defaultCheckBox != null)
+            _defaultCheckBox.Checked = record.IsDefault;
     }
 
     private void ClearForm()
@@ -302,6 +310,8 @@ public sealed class ConnectionManagerScreen : FrameView
         _clientSecretField.Text = string.Empty;
         _authCodeField.Text = string.Empty;
         _formStatusLabel.Text = string.Empty;
+        if (_defaultCheckBox != null)
+            _defaultCheckBox.Checked = false;
     }
 
     private static string GetTokenStatus(ConnectionRecord record)
@@ -348,7 +358,6 @@ public sealed class ConnectionManagerScreen : FrameView
         _isAdding = true;
         ClearForm();
         UpdateAuthCodeLabel();
-        _rightPanel.Title = "New Connection";
         _nameField.SetFocus();
     }
 
@@ -360,13 +369,11 @@ public sealed class ConnectionManagerScreen : FrameView
         {
             PopulateForm(_editingRecord);
             UpdateAuthCodeLabel();
-            _rightPanel.Title = _editingRecord.Name;
         }
         else
         {
             ClearForm();
             UpdateAuthCodeLabel();
-            _rightPanel.Title = "Connection";
         }
     }
 
@@ -408,6 +415,7 @@ public sealed class ConnectionManagerScreen : FrameView
 
         var editingRecord = _editingRecord;
         var isAdding = _isAdding;
+        var wantDefault = _defaultCheckBox?.Checked ?? false;
 
         _ = Task.Run(async () =>
         {
@@ -442,7 +450,8 @@ public sealed class ConnectionManagerScreen : FrameView
                                 ClientId = clientId,
                                 ClientSecret = clientSecret,
                                 RefreshToken = refreshToken,
-                                RefreshTokenValidToUtc = expiresAtUtc
+                                RefreshTokenValidToUtc = expiresAtUtc,
+                                IsDefault = wantDefault
                             };
                             _connectionRepository.Add(saved);
                         }
@@ -452,15 +461,21 @@ public sealed class ConnectionManagerScreen : FrameView
                             {
                                 Id = editingRecord!.Id,
                                 CreatedUtc = editingRecord.CreatedUtc,
+                                LastUsedUtc = editingRecord.LastUsedUtc,
                                 Name = name,
                                 SubscriptionKey = subscriptionKey,
                                 ClientId = clientId,
                                 ClientSecret = clientSecret,
                                 RefreshToken = refreshToken,
-                                RefreshTokenValidToUtc = expiresAtUtc
+                                RefreshTokenValidToUtc = expiresAtUtc,
+                                IsDefault = wantDefault
                             };
                             _connectionRepository.Update(saved);
                         }
+
+                        // Enforce single-default: clears the flag on every other connection.
+                        if (wantDefault)
+                            _connectionRepository.SetDefault(saved.Id);
 
                         _editingRecord = saved;
                         _isAdding = false;
@@ -469,7 +484,6 @@ public sealed class ConnectionManagerScreen : FrameView
                         _cancelButton.Enabled = true;
                         _formStatusLabel.Text = "Saved.";
                         UpdateAuthCodeLabel();
-                        _rightPanel.Title = saved.Name;
                         ReloadConnections();
                     }
                     catch (Exception innerEx)
@@ -510,7 +524,6 @@ public sealed class ConnectionManagerScreen : FrameView
             _isAdding = false;
             ClearForm();
             UpdateAuthCodeLabel();
-            _rightPanel.Title = "Connection";
         }
 
         ReloadConnections();

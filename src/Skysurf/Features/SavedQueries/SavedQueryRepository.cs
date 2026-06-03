@@ -48,4 +48,37 @@ public sealed class SavedQueryRepository(string filePath)
             Save(records);
         }
     }
+
+    public void Update(SavedQueryRecord savedQuery)
+    {
+        lock (_lock)
+        {
+            var records = Load();
+            var index = records.FindIndex(x => x.Id == savedQuery.Id);
+            if (index < 0)
+            {
+                records.Add(savedQuery);
+            }
+            else
+            {
+                records[index] = savedQuery;
+            }
+
+            Save(records);
+        }
+    }
+
+    public void Delete(Guid id)
+    {
+        lock (_lock)
+        {
+            var records = Load();
+            var index = records.FindIndex(x => x.Id == id);
+            if (index < 0)
+                return;
+
+            records.RemoveAt(index);
+            Save(records);
+        }
+    }
 }

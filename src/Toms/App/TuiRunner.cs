@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Shared.Authentication;
 using Shared.Connections;
 using Shared.Connections.Views;
+using Shared.Theming;
 using Terminal.Gui;
 using toms.App;
 
@@ -14,6 +15,7 @@ public static class TuiRunner
         var appHost = await AppHost.CreateAsync();
 
         Application.Init();
+        AppTheme.Apply();
 
         try
         {

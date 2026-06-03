@@ -1,14 +1,24 @@
 using Terminal.Gui;
+using skysurf.App.Navigation;
 
 namespace skysurf.App;
 
 public sealed class AppShell : Window
 {
+    private readonly AppNavigator _navigator;
     private readonly Label _statusLabel;
     private View? _currentScreen;
 
-    public AppShell(object _)
+    // The status bar is composed of a transient message (set by SetStatus) followed by the
+    // current screen's persistent text (set by ShowScreen). SetStatus only swaps the message
+    // so the persistent text — e.g. the navigation hints — is preserved.
+    private string _statusBase = string.Empty;
+    private string _statusMessage = string.Empty;
+
+    public AppShell(AppNavigator navigator)
     {
+        _navigator = navigator;
+
         X = 0;
         Y = 0;
         Width = Dim.Fill();
@@ -19,18 +29,11 @@ public sealed class AppShell : Window
         {
             X = 0,
             Y = Pos.AnchorEnd(1),
-            Width = Dim.Fill(19),
+            Width = Dim.Fill(),
             Height = 1
         };
 
-        var quitButton = new Button("Quit (Ctrl+Q)")
-        {
-            X = Pos.AnchorEnd(18),
-            Y = Pos.AnchorEnd(1)
-        };
-        quitButton.Clicked += () => Application.RequestStop();
-
-        Add(_statusLabel, quitButton);
+        Add(_statusLabel);
     }
 
     public void ShowScreen(View view, string title, string status)
@@ -47,13 +50,44 @@ public sealed class AppShell : Window
         _currentScreen.Height = Dim.Fill(1);
 
         Title = title;
-        _statusLabel.Text = status;
+        _statusBase = status;
+        _statusMessage = string.Empty;
+        RenderStatus();
         Add(_currentScreen);
         _currentScreen.SetFocus();
     }
 
-    public void SetStatus(string status)
+    public void SetStatus(string message)
     {
-        _statusLabel.Text = status;
+        _statusMessage = message;
+        RenderStatus();
+    }
+
+    private void RenderStatus()
+    {
+        if (string.IsNullOrWhiteSpace(_statusMessage))
+            _statusLabel.Text = _statusBase;
+        else if (string.IsNullOrWhiteSpace(_statusBase))
+            _statusLabel.Text = _statusMessage;
+        else
+            _statusLabel.Text = $"{_statusMessage}  {_statusBase}";
+    }
+
+    public override bool ProcessKey(KeyEvent keyEvent)
+    {
+        // Let the focused child handle the key first, then treat Ctrl+O as a global shortcut
+        // to open the connections screen.
+        if (base.ProcessKey(keyEvent))
+        {
+            return true;
+        }
+
+        if (keyEvent.Key == (Key.CtrlMask | Key.O))
+        {
+            _navigator.ShowConnections();
+            return true;
+        }
+
+        return false;
     }
 }

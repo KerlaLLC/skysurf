@@ -87,6 +87,39 @@ public sealed class ConnectionRepository(string filePath) : IConnectionRepositor
             connection.ClientSecret = updated.ClientSecret;
             connection.RefreshToken = updated.RefreshToken;
             connection.RefreshTokenValidToUtc = updated.RefreshTokenValidToUtc;
+            connection.IsDefault = updated.IsDefault;
+            Save(records);
+        }
+    }
+
+    public void SetDefault(Guid id)
+    {
+        lock (_lock)
+        {
+            var records = Load();
+            var found = false;
+            foreach (var record in records)
+            {
+                var isTarget = record.Id == id;
+                found |= isTarget;
+                record.IsDefault = isTarget;
+            }
+
+            if (found)
+                Save(records);
+        }
+    }
+
+    public void TouchLastUsed(Guid id)
+    {
+        lock (_lock)
+        {
+            var records = Load();
+            var connection = records.FirstOrDefault(x => x.Id == id);
+            if (connection is null)
+                return;
+
+            connection.LastUsedUtc = DateTime.UtcNow;
             Save(records);
         }
     }

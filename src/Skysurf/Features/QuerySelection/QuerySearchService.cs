@@ -5,22 +5,30 @@ namespace skysurf.Features.QuerySelection;
 
 public sealed class QuerySearchService(SkyApiSchemaService schemaService)
 {
-    public IReadOnlyList<SearchResult> Search(string query, IReadOnlyList<SavedQueryRecord> savedQueries)
+    public IReadOnlyList<SearchResult> Search(
+        string query,
+        IReadOnlyList<SavedQueryRecord> savedQueries,
+        bool includeEndpoints = true,
+        bool includeSaved = true)
     {
         var trimmedQuery = query.Trim();
-        var endpointResults = schemaService.Endpoints
-            .Select(endpoint => new SearchResult
-            {
-                Endpoint = endpoint,
-                Score = Score(trimmedQuery, endpoint.ApiName, endpoint.Path, endpoint.SchemaModelName)
-            });
+        var endpointResults = includeEndpoints
+            ? schemaService.Endpoints
+                .Select(endpoint => new SearchResult
+                {
+                    Endpoint = endpoint,
+                    Score = Score(trimmedQuery, endpoint.ApiName, endpoint.Path, endpoint.SchemaModelName)
+                })
+            : Enumerable.Empty<SearchResult>();
 
-        var savedQueryResults = savedQueries
-            .Select(savedQuery => new SearchResult
-            {
-                SavedQuery = savedQuery,
-                Score = Score(trimmedQuery, savedQuery.Name, savedQuery.ApiName, savedQuery.EndpointPath, savedQuery.SchemaModelName) + 1000
-            });
+        var savedQueryResults = includeSaved
+            ? savedQueries
+                .Select(savedQuery => new SearchResult
+                {
+                    SavedQuery = savedQuery,
+                    Score = Score(trimmedQuery, savedQuery.Name, savedQuery.ApiName, savedQuery.EndpointPath, savedQuery.SchemaModelName) + 1000
+                })
+            : Enumerable.Empty<SearchResult>();
 
         return savedQueryResults
             .Concat(endpointResults)

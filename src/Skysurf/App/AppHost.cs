@@ -48,8 +48,8 @@ public sealed class AppHost : IAsyncDisposable
                 services.AddSingleton<QuerySearchService>();
                 services.AddSingleton<SkyAuthenticationService>();
                 services.AddSingleton<SkyQueryExecutor>();
-                services.AddSingleton<WizardState>();
-                services.AddSingleton<WizardNavigator>();
+                services.AddSingleton<SessionState>();
+                services.AddSingleton<AppNavigator>();
             })
             .Build();
 
