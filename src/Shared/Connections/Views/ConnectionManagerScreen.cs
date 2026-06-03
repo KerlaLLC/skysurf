@@ -110,7 +110,7 @@ public sealed class ConnectionManagerScreen : View
         _rightPanel.Add(_nameField);
 
         _rightPanel.Add(new Label("Subscription Key") { X = 1, Y = 3 });
-        _subscriptionKeyField = new TextField(string.Empty) { X = 22, Y = 3, Width = Dim.Fill(2) };
+        _subscriptionKeyField = new TextField(string.Empty) { X = 22, Y = 3, Width = Dim.Fill(2), Secret = true };
         _rightPanel.Add(_subscriptionKeyField);
 
         _rightPanel.Add(new Label("Client ID") { X = 1, Y = 5 });
@@ -119,7 +119,7 @@ public sealed class ConnectionManagerScreen : View
         _rightPanel.Add(_clientIdField);
 
         _rightPanel.Add(new Label("Client Secret") { X = 1, Y = 7 });
-        _clientSecretField = new TextField(string.Empty) { X = 22, Y = 7, Width = Dim.Fill(2) };
+        _clientSecretField = new TextField(string.Empty) { X = 22, Y = 7, Width = Dim.Fill(2), Secret = true };
         _rightPanel.Add(_clientSecretField);
 
         _rightPanel.Add(new Label("Authorization URL") { X = 1, Y = 9 });
