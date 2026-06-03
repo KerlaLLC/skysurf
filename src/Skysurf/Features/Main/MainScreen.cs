@@ -18,6 +18,7 @@ public sealed class MainScreen : View
     private readonly SkyQueryExecutor _queryExecutor;
     private readonly IConnectionRepository _connectionRepository;
     private readonly SessionState _session;
+    private readonly QueryResultCacheRepository _resultCache;
     private readonly Action<string>? _onStatus;
 
     private readonly QueriesPanel _queries;
@@ -33,6 +34,7 @@ public sealed class MainScreen : View
         SkyQueryExecutor queryExecutor,
         IConnectionRepository connectionRepository,
         SessionState session,
+        QueryResultCacheRepository resultCache,
         Action<string>? onStatus = null)
     {
         _schemaService = schemaService;
@@ -40,6 +42,7 @@ public sealed class MainScreen : View
         _queryExecutor = queryExecutor;
         _connectionRepository = connectionRepository;
         _session = session;
+        _resultCache = resultCache;
         _onStatus = onStatus;
 
         _queries = new QueriesPanel(querySearchService, savedQueryRepository)
@@ -94,17 +97,43 @@ public sealed class MainScreen : View
         if (selection is null)
         {
             _parameters.SetEndpoint(null, null);
+            _response.ClearResult();
             return;
         }
 
+        SkyEndpoint? endpoint;
         if (selection.SavedQuery is not null)
         {
-            var endpoint = ResolveEndpoint(selection, showErrors: false);
+            endpoint = ResolveEndpoint(selection, showErrors: false);
             _parameters.SetEndpoint(endpoint, endpoint is null ? null : selection.SavedQuery.GetParameters());
+        }
+        else
+        {
+            endpoint = selection.Endpoint;
+            _parameters.SetEndpoint(endpoint, null);
+        }
+
+        RestoreCachedResult(endpoint);
+    }
+
+    /// <summary>If this endpoint + the parameters currently in the panel have been run before on the
+    /// active connection, re-display that cached result with its refresh time; otherwise clear the
+    /// Response box. Results are scoped per connection.</summary>
+    private void RestoreCachedResult(SkyEndpoint? endpoint)
+    {
+        var connection = _session.ActiveConnection;
+        if (endpoint is null || connection is null)
+        {
+            _response.ClearResult();
             return;
         }
 
-        _parameters.SetEndpoint(selection.Endpoint, null);
+        var key = QueryResultCacheRepository.BuildKey(connection.Id, endpoint, _parameters.PeekValues());
+        var cached = _resultCache.TryGet(key);
+        if (cached is not null)
+            _response.ShowResult(cached.Result, cached.RefreshedUtc);
+        else
+            _response.ClearResult();
     }
 
     /// <summary>Resolves the concrete endpoint behind a selection (saved queries point at one
@@ -264,9 +293,11 @@ public sealed class MainScreen : View
             {
                 var result = await _queryExecutor.ExecuteAsync(connection, endpoint, values);
                 _connectionRepository.TouchLastUsed(connection.Id);
+                var refreshedUtc = DateTime.UtcNow;
+                _resultCache.Save(QueryResultCacheRepository.BuildKey(connection.Id, endpoint, values), result, refreshedUtc);
                 Application.MainLoop.Invoke(() =>
                 {
-                    _response.ShowResult(result);
+                    _response.ShowResult(result, refreshedUtc);
                     _sendButton.Enabled = true;
                     _onStatus?.Invoke($"{result.ItemCount} item(s) returned.");
                 });

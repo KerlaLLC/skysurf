@@ -100,8 +100,9 @@ public sealed class ResponsePanel : GroupBox
             exportButton, openButton, copyJsonButton, copyCellButton, copyRowButton);
     }
 
-    /// <summary>Populates the panel with a freshly executed query result.</summary>
-    public void ShowResult(QueryResult result)
+    /// <summary>Populates the panel with a query result (freshly executed or restored from cache),
+    /// showing when it was last refreshed in the group box title.</summary>
+    public void ShowResult(QueryResult result, DateTime refreshedUtc)
     {
         _result = result;
         _searchField.Text = string.Empty;
@@ -113,7 +114,23 @@ public sealed class ResponsePanel : GroupBox
         if (result.Table.Rows.Count > 0 && result.Table.Columns.Count > 0)
             _tableView.SetSelection(0, 0, false);
 
+        MnemonicTitle = $"_Response — refreshed {refreshedUtc.ToLocalTime():g}";
         UpdateTree();
+    }
+
+    /// <summary>Resets the panel to its empty state (no result, no refresh time), e.g. when the
+    /// selected query has never been run.</summary>
+    public void ClearResult()
+    {
+        _result = null;
+        _searchField.Text = string.Empty;
+        _hits = [];
+        _hitIndex = -1;
+        _hitLabel.Text = "0/0 hits";
+
+        _tableView.Table = new DataTable();
+        _treeView.ClearObjects();
+        MnemonicTitle = "_Response";
     }
 
     private static DataTable BuildDataTable(QueryResultTable table)

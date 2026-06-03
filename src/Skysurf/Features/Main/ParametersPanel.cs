@@ -189,4 +189,22 @@ public sealed class ParametersPanel : GroupBox
 
         return values;
     }
+
+    /// <summary>Reads the current field values without validating required fields or showing any
+    /// error dialogs. Used to look up a previously cached result for the current selection.</summary>
+    public Dictionary<string, string> PeekValues()
+    {
+        var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (_endpoint is null)
+            return values;
+
+        foreach (var (name, field) in _fields)
+        {
+            var text = field.Text?.ToString()?.Trim() ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(text))
+                values[name] = text;
+        }
+
+        return values;
+    }
 }

@@ -1,6 +1,6 @@
 namespace skysurf.App;
 
-public sealed record AppPaths(string RootDirectory, string ConnectionsFilePath, string SavedQueriesFilePath, string CacheDirectory)
+public sealed record AppPaths(string RootDirectory, string ConnectionsFilePath, string SavedQueriesFilePath, string CacheDirectory, string ResultsCacheDirectory)
 {
     public static AppPaths Create()
     {
@@ -16,13 +16,15 @@ public sealed record AppPaths(string RootDirectory, string ConnectionsFilePath, 
             root,
             Path.Combine(sharedRoot, "connections.hjson"),
             Path.Combine(root, "saved-queries.hjson"),
-            Path.Combine(root, "cache"));
+            Path.Combine(root, "cache"),
+            Path.Combine(root, "cache", "results"));
     }
 
     public void EnsureDirectoriesExist()
     {
         Directory.CreateDirectory(RootDirectory);
         Directory.CreateDirectory(CacheDirectory);
+        Directory.CreateDirectory(ResultsCacheDirectory);
         Directory.CreateDirectory(Path.GetDirectoryName(ConnectionsFilePath)!);
     }
 }

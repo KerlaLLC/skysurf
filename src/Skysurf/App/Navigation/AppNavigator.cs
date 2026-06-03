@@ -22,6 +22,7 @@ public sealed class AppNavigator
     private readonly SavedQueryRepository _savedQueryRepository;
     private readonly QuerySearchService _querySearchService;
     private readonly SkyQueryExecutor _queryExecutor;
+    private readonly QueryResultCacheRepository _resultCache;
 
     private AppShell? _shell;
     private MainScreen? _mainScreen;
@@ -33,7 +34,8 @@ public sealed class AppNavigator
         SkyAuthenticationService authService,
         SavedQueryRepository savedQueryRepository,
         QuerySearchService querySearchService,
-        SkyQueryExecutor queryExecutor)
+        SkyQueryExecutor queryExecutor,
+        QueryResultCacheRepository resultCache)
     {
         _session = session;
         _schemaService = schemaService;
@@ -42,6 +44,7 @@ public sealed class AppNavigator
         _savedQueryRepository = savedQueryRepository;
         _querySearchService = querySearchService;
         _queryExecutor = queryExecutor;
+        _resultCache = resultCache;
     }
 
     public void AttachShell(AppShell shell)
@@ -148,6 +151,7 @@ public sealed class AppNavigator
             _queryExecutor,
             _connectionRepository,
             _session,
+            _resultCache,
             onStatus: text => _shell?.SetStatus(text));
 
         _mainScreen.Refresh();

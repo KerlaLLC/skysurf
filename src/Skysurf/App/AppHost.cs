@@ -43,6 +43,8 @@ public sealed class AppHost : IAsyncDisposable
                     _ => new ConnectionRepository(paths.ConnectionsFilePath));
                 services.AddSingleton(
                     _ => new SavedQueryRepository(paths.SavedQueriesFilePath));
+                services.AddSingleton(
+                    _ => new QueryResultCacheRepository(paths.ResultsCacheDirectory));
 
                 services.AddSingleton<SkyApiSchemaService>();
                 services.AddSingleton<QuerySearchService>();
