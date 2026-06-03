@@ -188,6 +188,9 @@ public sealed class ConnectionManagerScreen : View
             selectButton.Clicked += ActivateSelection;
             Add(selectButton);
             lastBarButton = selectButton;
+
+            // Enter (or double-click) on the focused list selects the connection.
+            _listView.OpenSelectedItem += _ => ActivateSelection();
         }
 
         if (onGetToken != null)
