@@ -249,6 +249,29 @@ tokenCommand.SetHandler(async (nameOrId, rotate) =>
 tokenNameArg, tokenRotateOption);
 rootCommand.AddCommand(tokenCommand);
 
+// subscription-key
+var subKeyNameArg = new Argument<string>("name-or-id", "Connection name or ID");
+var subKeyCommand = new Command("subscription-key", "Get the subscription key for a connection") { subKeyNameArg };
+subKeyCommand.SetHandler(async (nameOrId) =>
+{
+    var host = await AppHost.CreateAsync();
+    var repo = host.Services.GetRequiredService<IConnectionRepository>();
+    var connection = repo.GetByNameOrId(nameOrId);
+
+    if (connection is null)
+    {
+        Console.Error.WriteLine($"Connection '{nameOrId}' not found.");
+        await host.DisposeAsync();
+        Environment.Exit(1);
+        return;
+    }
+
+    Console.WriteLine(connection.SubscriptionKey);
+    await host.DisposeAsync();
+},
+subKeyNameArg);
+rootCommand.AddCommand(subKeyCommand);
+
 // refresh  (always rotates; alias for token --rotate)
 var refreshNameArg = new Argument<string>("name-or-id", "Connection name or ID");
 var refreshCommand = new Command("refresh", "Rotate the refresh token and get a new access token") { refreshNameArg };
