@@ -39,7 +39,7 @@ listCommand.SetHandler(async () =>
         var expired = c.RefreshTokenValidToUtc <= DateTime.UtcNow;
         var expiringSoon = !expired && c.RefreshTokenValidToUtc <= DateTime.UtcNow.AddMonths(6);
         var status = expired ? "EXPIRED" : expiringSoon ? "Expiring soon" : "OK";
-        Console.WriteLine($"{c.Name.PadRight(col1)}  {c.ClientId.PadRight(col2)}  {c.RefreshTokenValidToUtc:u,-22}  {status}");
+        Console.WriteLine($"{c.Name.PadRight(col1)}  {c.ClientId.PadRight(col2)}  {c.RefreshTokenValidToUtc,-22:u}  {status}");
     }
 
     await host.DisposeAsync();
